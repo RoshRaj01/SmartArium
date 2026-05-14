@@ -14,6 +14,9 @@ const int oneWireBus = 4; // Data wire is plugged into pin 4 on the ESP32
 OneWire oneWire(oneWireBus);
 DallasTemperature sensors(&oneWire);
 
+// MQ-135 Gas Sensor (Ammonia/Air Quality)
+const int mq135Pin = 34; // Connected to AO (Analog Output)
+
 void setup() {
   Serial.begin(115200);
   
@@ -31,51 +34,43 @@ void setup() {
   sensors.begin();
 }
 
+void sendSensorData(String type, float value) {
+  HTTPClient http;
+  http.begin(serverUrl);
+  http.addHeader("Content-Type", "application/json");
+  StaticJsonDocument<200> doc;
+  doc["sensor_type"] = type;
+  doc["value"] = value;
+  String requestBody;
+  serializeJson(doc, requestBody);
+  
+  Serial.print("Sending " + type + ": ");
+  Serial.println(value);
+  
+  int httpResponseCode = http.POST(requestBody);
+  if (httpResponseCode > 0) {
+    Serial.print("Server Response: ");
+    Serial.println(httpResponseCode);
+  } else {
+    Serial.print("Error: ");
+    Serial.println(httpResponseCode);
+  }
+  http.end();
+}
+
 void loop() {
   if (WiFi.status() == WL_CONNECTED) {
+    // 1. Temperature
     sensors.requestTemperatures(); 
-    float temperatureC = sensors.getTempCByIndex(0);
-    
-    if (temperatureC != DEVICE_DISCONNECTED_C) {
-      Serial.println("-------------------------");
-      Serial.print("Current Temperature: ");
-      Serial.print(temperatureC);
-      Serial.println(" °C");
-      
-      // Send data to Flask
-      HTTPClient http;
-      http.begin(serverUrl);
-      http.addHeader("Content-Type", "application/json");
-      
-      StaticJsonDocument<200> doc;
-      doc["sensor_type"] = "temperature";
-      doc["value"] = temperatureC;
-      
-      String requestBody;
-      serializeJson(doc, requestBody);
-      
-      Serial.println("Sending data to server...");
-      int httpResponseCode = http.POST(requestBody);
-      
-      if (httpResponseCode > 0) {
-        String response = http.getString();
-        Serial.print("Server Response Code: ");
-        Serial.println(httpResponseCode);
-        Serial.print("Server Message: ");
-        Serial.println(response);
-      } else {
-        Serial.print("!! ERROR sending POST: ");
-        Serial.println(httpResponseCode);
-        Serial.println("Check if your Laptop and ESP32 are on the same WiFi!");
-      }
-      http.end();
-      Serial.println("-------------------------");
-    } else {
-      Serial.println("!! SENSOR ERROR: DS18B20 not found!");
-      Serial.println("Check your wiring and the 4.7k resistor.");
-      Serial.println("-------------------------");
+    float temp = sensors.getTempCByIndex(0);
+    if (temp != DEVICE_DISCONNECTED_C) {
+      sendSensorData("temperature", temp);
     }
+
+    // 2. MQ-135 (Ammonia)
+    int rawValue = analogRead(mq135Pin);
+    float ppm = (rawValue / 4095.0) * 100.0; // Simple mapping
+    sendSensorData("ammonia", ppm);
   }
-  
-  delay(10000); // Wait 10 seconds before next reading
+  delay(5000); 
 }

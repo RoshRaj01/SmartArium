@@ -73,9 +73,12 @@ db = Database()
 
 # ─── Alert Logic ─────────────────────────────────────────────────────────────
 SENSOR_THRESHOLDS = {
-    "temperature": (24.0, 28.0),
-    "ph": (6.5, 7.5),
-    "water_level": (80, 100)
+    "temperature": (config.getfloat('THRESHOLDS', 'temp_min', fallback=24.0), config.getfloat('THRESHOLDS', 'temp_max', fallback=28.0)),
+    "ph": (6.5, 8.5),
+    "ammonia": (0, 20.0), # Adjusted for MQ-135 Raw Range
+    "water_level": (50, 100),
+    "tds": (0, 500),
+    "oxygen": (5, 12)
 }
 
 def get_sensor_status(sensor_type, value):
