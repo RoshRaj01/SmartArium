@@ -55,7 +55,7 @@
         </div>
         <span class="status-badge status-{{ statuses[key] }}">{{ statuses[key]|upper }}</span>
       </div>
-      <div class="card-value" id="val-{{ key }}">{{ sensors[key] }}</div>
+      <div class="card-value" id="val-{{ key }}">{{ sensors[key]|round(2) }}</div>
       <div class="card-unit">{{ info.unit }}</div>
       <div class="card-label">{{ info.label }}</div>
       <div class="card-mini-bar">

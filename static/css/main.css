@@ -248,7 +248,7 @@ a { text-decoration: none; color: inherit; }
 /* ═══════ SENSOR GRID ═════════════════════════════════════ */
 .sensor-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 16px;
   padding: 20px 28px;
 }
@@ -343,11 +343,14 @@ a { text-decoration: none; color: inherit; }
 
 .card-value {
   font-family: var(--font-mono);
-  font-size: 38px;
+  font-size: 32px;
   font-weight: 700;
-  line-height: 1;
-  letter-spacing: -1px;
+  line-height: 1.1;
+  letter-spacing: -0.5px;
   transition: color 0.3s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .status-green  .card-value { color: var(--green); }
 .status-yellow .card-value { color: var(--yellow); }

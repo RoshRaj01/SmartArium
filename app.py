@@ -102,7 +102,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def dashboard():
-    sensors = db.get_latest_all()
+    sensors = {k: round(v, 2) for k, v in db.get_latest_all().items()}
     alerts = db.get_alerts(limit=5)
     statuses = {s: get_sensor_status(s, sensors[s]) for s in sensors}
     return render_template("dashboard.html", sensors=sensors, statuses=statuses, alerts=alerts)
