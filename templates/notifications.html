@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaMon — Notifications</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+{% include 'sidebar.html' %}
+
+<main class="main-content">
+  <header class="top-bar">
+    <div class="top-bar-left">
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+      <h1 class="page-title">🔔 Notifications</h1>
+    </div>
+    <div class="top-bar-right">
+      <span class="clock" id="clock"></span>
+    </div>
+  </header>
+
+  <section class="notif-page">
+    {% if alerts %}
+      {% for alert in alerts %}
+      <div class="notif-item severity-{{ alert.severity }}" id="notif-{{ alert.id }}">
+        <div class="notif-icon">
+          {% if alert.severity == 'critical' %}🚨
+          {% elif alert.severity == 'warning' %}⚠️
+          {% else %}💛{% endif %}
+        </div>
+        <div class="notif-body">
+          <div class="notif-msg">{{ alert.message }}</div>
+          <div class="notif-time">{{ alert.timestamp[:16].replace('T', ' ') }}</div>
+        </div>
+        <button class="notif-dismiss" onclick="dismissAlert({{ alert.id }}, this)">Dismiss</button>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="notif-empty">
+        <div class="notif-empty-icon">✅</div>
+        <div class="notif-empty-text">All clear! No active alerts.</div>
+      </div>
+    {% endif %}
+  </section>
+</main>
+
+<script src="/static/js/main.js"></script>
+<script>
+  updateClock();
+  setInterval(updateClock, 1000);
+</script>
+</body>
+</html>

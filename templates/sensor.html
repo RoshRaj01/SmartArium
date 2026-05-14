@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaMon — {{ info.label }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/main.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+{% include 'sidebar.html' %}
+
+<main class="main-content">
+  <header class="top-bar">
+    <div class="top-bar-left">
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+      <a href="/" class="back-btn">← Back</a>
+      <h1 class="page-title">{{ info.icon }} {{ info.label }}</h1>
+    </div>
+    <div class="top-bar-right">
+      <span class="live-indicator"><span class="pulse-dot"></span> LIVE</span>
+      <span class="clock" id="clock"></span>
+    </div>
+  </header>
+
+  <!-- Current Value Hero -->
+  <section class="sensor-hero status-{{ status }}">
+    <div class="hero-glow"></div>
+    <div class="hero-content">
+      <div class="hero-label">CURRENT READING</div>
+      <div class="hero-value" id="live-value">{{ current }}</div>
+      <div class="hero-unit">{{ info.unit }}</div>
+      <div class="hero-status status-badge-large status-{{ status }}">{{ status|upper }}</div>
+      <div class="hero-ideal">Ideal range: {{ info.ideal }}</div>
+    </div>
+    <div class="status-ring status-ring-{{ status }}"></div>
+  </section>
+
+  <div class="sensor-body">
+    <!-- Chart -->
+    <section class="chart-card">
+      <div class="chart-header">
+        <h2 class="chart-title">Historical Data</h2>
+        <div class="chart-controls">
+          <button class="chart-btn active" onclick="setRange(this, 24)">24h</button>
+          <button class="chart-btn" onclick="setRange(this, 48)">48h</button>
+          <button class="chart-btn" onclick="setRange(this, 96)">All</button>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="sensorChart"></canvas>
+      </div>
+    </section>
+
+    <!-- Suggestions -->
+    <section class="suggestions-card">
+      <h2 class="sug-title">💡 Recommendations</h2>
+      <div class="sug-list">
+        {% for tip in suggestions %}
+        <div class="sug-item">
+          <div class="sug-dot status-dot-{{ status }}"></div>
+          <p>{{ tip }}</p>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+</main>
+
+<script src="/static/js/main.js"></script>
+<script src="/static/js/sensor.js"></script>
+<script>
+  const SENSOR_TYPE = "{{ sensor_type }}";
+  const HISTORY = {{ history | tojson }};
+  initSensorChart(HISTORY);
+  updateClock();
+  setInterval(updateClock, 1000);
+  setInterval(() => refreshSensorValue(SENSOR_TYPE), 10000);
+</script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaMon — Feeder Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+{% include 'sidebar.html' %}
+
+<main class="main-content">
+  <header class="top-bar">
+    <div class="top-bar-left">
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+      <h1 class="page-title">🍽️ Feeder Control</h1>
+    </div>
+    <div class="top-bar-right">
+      <span class="clock" id="clock"></span>
+    </div>
+  </header>
+
+  <div class="feeder-layout">
+    <!-- Schedule Card -->
+    <section class="feeder-card">
+      <h2 class="feeder-section-title">Feed Schedule</h2>
+
+      <div class="mode-grid">
+        <button class="mode-btn {% if schedule.mode == 'every_8h' %}active{% endif %}"
+                onclick="setMode('every_8h', this)">
+          <div class="mode-icon">⏰</div>
+          <div class="mode-label">Every 8h</div>
+          <div class="mode-sub">3× per day</div>
+        </button>
+        <button class="mode-btn {% if schedule.mode == 'every_12h' %}active{% endif %}"
+                onclick="setMode('every_12h', this)">
+          <div class="mode-icon">🕐</div>
+          <div class="mode-label">Every 12h</div>
+          <div class="mode-sub">2× per day</div>
+        </button>
+        <button class="mode-btn {% if schedule.mode == 'every_24h' %}active{% endif %}"
+                onclick="setMode('every_24h', this)">
+          <div class="mode-icon">📅</div>
+          <div class="mode-label">Every 24h</div>
+          <div class="mode-sub">Once daily</div>
+        </button>
+        <button class="mode-btn {% if schedule.mode == 'custom' %}active{% endif %}"
+                onclick="setMode('custom', this)">
+          <div class="mode-icon">✏️</div>
+          <div class="mode-label">Custom</div>
+          <div class="mode-sub">Set your times</div>
+        </button>
+      </div>
+
+      <!-- Custom Time Picker -->
+      <div class="custom-times-section" id="custom-section"
+           style="display: {% if schedule.mode == 'custom' %}block{% else %}none{% endif %}">
+        <h3 class="custom-title">Custom Feeding Times</h3>
+        <div id="time-list" class="time-list"></div>
+        <button class="add-time-btn" onclick="addTimeSlot()">+ Add Time</button>
+      </div>
+
+      <!-- Amount -->
+      <div class="amount-section">
+        <h3 class="amount-title">Amount per Feed</h3>
+        <div class="amount-control">
+          <button class="amount-btn" onclick="changeAmount(-0.5)">−</button>
+          <div class="amount-display">
+            <span class="amount-num" id="amount-num">{{ schedule.quantity_grams }}</span>
+            <span class="amount-unit">grams</span>
+          </div>
+          <button class="amount-btn" onclick="changeAmount(0.5)">+</button>
+        </div>
+      </div>
+
+      <div class="feeder-actions">
+        <button class="save-btn" onclick="saveSchedule()">💾 Save Schedule</button>
+        <button class="feed-now-btn" onclick="feedNow()">▶ Feed Now</button>
+      </div>
+
+      <div id="feeder-toast" class="feeder-toast" style="display:none"></div>
+    </section>
+
+    <!-- Feed Log -->
+    <section class="feed-log-card">
+      <h2 class="feeder-section-title">Recent Feedings</h2>
+      <div class="feed-log">
+        {% if schedule.log %}
+          {% for entry in schedule.log %}
+          <div class="log-entry">
+            <div class="log-icon">🐟</div>
+            <div class="log-info">
+              <div class="log-amount">{{ entry.amount_grams }}g</div>
+              <div class="log-time">{{ entry.timestamp[:16].replace('T', ' ') }}</div>
+            </div>
+            <div class="log-source {% if entry.source == 'manual' %}manual{% else %}auto{% endif %}">
+              {{ entry.source }}
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+        <div class="log-empty">No feedings logged yet.</div>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+</main>
+
+<script src="/static/js/main.js"></script>
+<script src="/static/js/feeder.js"></script>
+<script>
+  updateClock();
+  setInterval(updateClock, 1000);
+  initFeeder({{ schedule | tojson }});
+</script>
+</body>
+</html>

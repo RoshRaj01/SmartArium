@@ -1,0 +1,55 @@
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">🐠</div>
+    <div class="brand-text">
+      <div class="brand-name">AquaMon</div>
+      <div class="brand-sub">Aquarium Monitor</div>
+    </div>
+  </div>
+
+  <div class="sidebar-section-label">OVERVIEW</div>
+  <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">
+    <span class="nav-icon">⬛</span> Dashboard
+  </a>
+  <a href="/notifications" class="nav-link {% if request.path == '/notifications' %}active{% endif %}">
+    <span class="nav-icon">🔔</span> Notifications
+    <span class="nav-badge" id="notif-count"></span>
+  </a>
+
+  <div class="sidebar-section-label">SENSORS</div>
+  <a href="/sensor/oxygen" class="nav-link {% if '/sensor/oxygen' in request.path %}active{% endif %}">
+    <span class="nav-icon">💧</span> Dissolved O₂
+    <span class="nav-status" id="nav-status-oxygen"></span>
+  </a>
+  <a href="/sensor/ammonia" class="nav-link {% if '/sensor/ammonia' in request.path %}active{% endif %}">
+    <span class="nav-icon">⚗️</span> Ammonia
+    <span class="nav-status" id="nav-status-ammonia"></span>
+  </a>
+  <a href="/sensor/tds" class="nav-link {% if '/sensor/tds' in request.path %}active{% endif %}">
+    <span class="nav-icon">🧪</span> TDS
+    <span class="nav-status" id="nav-status-tds"></span>
+  </a>
+  <a href="/sensor/temperature" class="nav-link {% if '/sensor/temperature' in request.path %}active{% endif %}">
+    <span class="nav-icon">🌡️</span> Temperature
+    <span class="nav-status" id="nav-status-temperature"></span>
+  </a>
+  <a href="/sensor/ph" class="nav-link {% if '/sensor/ph' in request.path %}active{% endif %}">
+    <span class="nav-icon">⚖️</span> pH Level
+    <span class="nav-status" id="nav-status-ph"></span>
+  </a>
+  <a href="/sensor/water_level" class="nav-link {% if '/sensor/water_level' in request.path %}active{% endif %}">
+    <span class="nav-icon">🫧</span> Water Level
+    <span class="nav-status" id="nav-status-water_level"></span>
+  </a>
+
+  <div class="sidebar-section-label">CONTROLS</div>
+  <a href="/feeder" class="nav-link {% if request.path == '/feeder' %}active{% endif %}">
+    <span class="nav-icon">🍽️</span> Feeder Control
+  </a>
+
+  <div class="sidebar-footer">
+    <div class="sidebar-footer-text">AquaMon v1.0</div>
+    <div class="sidebar-footer-sub">Free & Open Source</div>
+  </div>
+</nav>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
