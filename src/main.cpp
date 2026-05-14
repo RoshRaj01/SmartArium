@@ -67,6 +67,8 @@ void loop() {
       sendSensorData("temperature", temp);
     }
 
+    delay(500); // Give the server a moment to breathe
+
     // 2. MQ-135 (Ammonia)
     int rawValue = analogRead(mq135Pin);
     float ppm = (rawValue / 4095.0) * 100.0; // Simple mapping
