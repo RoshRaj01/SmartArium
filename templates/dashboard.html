@@ -49,6 +49,10 @@
       <div class="card-glow"></div>
       <div class="card-header">
         <span class="card-icon">{{ info.icon }}</span>
+        <div class="hw-status-wrap">
+          <span class="hw-dot" id="hw-dot-{{ key }}"></span>
+          <span class="hw-text" id="hw-text-{{ key }}">OFFLINE</span>
+        </div>
         <span class="status-badge status-{{ statuses[key] }}">{{ statuses[key]|upper }}</span>
       </div>
       <div class="card-value" id="val-{{ key }}">{{ sensors[key] }}</div>

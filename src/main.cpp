@@ -5,9 +5,9 @@
 #include <DallasTemperature.h>
 
 // ─── Settings ────────────────────────────────────────────────────────────────
-const char* ssid = "YOUR_WIFI_SSID";
-const char* password = "YOUR_WIFI_PASSWORD";
-const char* serverUrl = "http://192.168.1.100:5000/api/sensor/insert";
+const char* ssid = "iQOO Neo 10R";
+const char* password = "netillaman";
+const char* serverUrl = "http://10.45.181.234:5000/api/sensor/insert";
 
 // DS18B20 Temperature Sensor
 const int oneWireBus = 4; // Data wire is plugged into pin 4 on the ESP32
@@ -34,8 +34,10 @@ void loop() {
     float temperatureC = sensors.getTempCByIndex(0);
     
     if (temperatureC != DEVICE_DISCONNECTED_C) {
-      Serial.print("Temperature: ");
-      Serial.println(temperatureC);
+      Serial.println("-------------------------");
+      Serial.print("Current Temperature: ");
+      Serial.print(temperatureC);
+      Serial.println(" °C");
       
       // Send data to Flask
       HTTPClient http;
@@ -49,17 +51,21 @@ void loop() {
       String requestBody;
       serializeJson(doc, requestBody);
       
+      Serial.println("Sending data to server...");
       int httpResponseCode = http.POST(requestBody);
       
       if (httpResponseCode > 0) {
         String response = http.getString();
+        Serial.print("Server Response Code: ");
         Serial.println(httpResponseCode);
+        Serial.print("Server Message: ");
         Serial.println(response);
       } else {
-        Serial.print("Error on sending POST: ");
+        Serial.print("!! ERROR sending POST: ");
         Serial.println(httpResponseCode);
       }
       http.end();
+      Serial.println("-------------------------");
     }
   }
   

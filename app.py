@@ -84,6 +84,13 @@ def get_sensor_status(sensor_type, value):
     if lo <= value <= hi: return "green"
     return "red"
 
+def is_sensor_online(sensor_type):
+    cursor = db.conn.execute("SELECT timestamp FROM readings WHERE type = ? ORDER BY timestamp DESC LIMIT 1", (sensor_type,))
+    row = cursor.fetchone()
+    if not row: return False
+    last_time = datetime.strptime(row[0], "%Y-%m-%d %H:%M:%S.%f")
+    return (datetime.now() - last_time).total_seconds() < 60
+
 def check_alerts(sensor_type, value):
     status = get_sensor_status(sensor_type, value)
     if status == "red":
@@ -142,7 +149,11 @@ def api_sensors_all():
     sensors = db.get_latest_all()
     result = {}
     for s, v in sensors.items():
-        result[s] = {"value": v, "status": get_sensor_status(s, v)}
+        result[s] = {
+            "value": round(v, 2), 
+            "status": get_sensor_status(s, v),
+            "online": is_sensor_online(s)
+        }
     alerts = db.get_alerts(limit=5)
     alert_list = [{"id": a["id"], "message": a["message"], "severity": a["severity"], "timestamp": a["timestamp"]} for a in alerts]
     return jsonify({"sensors": result, "alerts": alert_list})

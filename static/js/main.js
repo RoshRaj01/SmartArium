@@ -41,6 +41,14 @@ async function refreshDashboard() {
         card.className = `sensor-card status-${info.status}`;
       }
 
+      // Update HW Status
+      const dot = document.getElementById(`hw-dot-${key}`);
+      const txt = document.getElementById(`hw-text-${key}`);
+      if (dot && txt) {
+        dot.classList.toggle('online', info.online);
+        txt.textContent = info.online ? 'ONLINE' : 'OFFLINE';
+      }
+
       // Update sidebar dots
       const dot = document.getElementById(`nav-status-${key}`);
       if (dot) {

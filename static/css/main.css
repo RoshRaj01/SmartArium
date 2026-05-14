@@ -312,6 +312,35 @@ a { text-decoration: none; color: inherit; }
 .status-badge.status-orange { color: var(--orange); border-color: var(--orange); background: var(--orange-bg); }
 .status-badge.status-red    { color: var(--red); border-color: var(--red); background: var(--red-bg); }
 
+/* Hardware Connectivity Badge */
+.hw-status-wrap {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 10px;
+  margin-right: auto;
+}
+.hw-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: var(--transition);
+}
+.hw-dot.online {
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+}
+.hw-text {
+  font-size: 8px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+.hw-dot.online + .hw-text {
+  color: var(--green);
+}
+
 .card-value {
   font-family: var(--font-mono);
   font-size: 38px;
