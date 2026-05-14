@@ -50,9 +50,9 @@ async function refreshDashboard() {
       }
 
       // Update sidebar dots
-      const dot = document.getElementById(`nav-status-${key}`);
-      if (dot) {
-        dot.className = `nav-status visible ${info.status}`;
+      const navDot = document.getElementById(`nav-status-${key}`);
+      if (navDot) {
+        navDot.className = `nav-status visible ${info.status}`;
       }
     }
 

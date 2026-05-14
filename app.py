@@ -21,7 +21,7 @@ class Database:
     def init(self):
         with self.conn:
             self.conn.execute("CREATE TABLE IF NOT EXISTS readings (id INTEGER PRIMARY KEY, type TEXT, value REAL, timestamp DATETIME)")
-            self.conn.execute("CREATE TABLE IF NOT EXISTS alerts (id INTEGER PRIMARY KEY, sensor TEXT, message TEXT, severity TEXT, timestamp DATETIME, active INTEGER DEFAULT 1)")
+            self.conn.execute("CREATE TABLE IF NOT EXISTS alerts (id INTEGER PRIMARY KEY, sensor_type TEXT, message TEXT, severity TEXT, timestamp DATETIME, active INTEGER DEFAULT 1)")
 
     def insert_reading(self, sensor_type, value):
         with self.conn:
@@ -40,9 +40,9 @@ class Database:
         cursor = self.conn.execute("SELECT value, timestamp FROM readings WHERE type = ? ORDER BY timestamp DESC LIMIT ?", (sensor_type, limit))
         return [{"value": r[0], "timestamp": r[1]} for r in cursor.fetchall()]
 
-    def add_alert(self, sensor, message, severity):
+    def add_alert(self, sensor_type, message, severity):
         with self.conn:
-            self.conn.execute("INSERT INTO alerts (sensor, message, severity, timestamp) VALUES (?, ?, ?, ?)", (sensor, message, severity, datetime.now()))
+            self.conn.execute("INSERT INTO alerts (sensor_type, message, severity, timestamp) VALUES (?, ?, ?, ?)", (sensor_type, message, severity, datetime.now()))
 
     def get_alerts(self, limit=10):
         cursor = self.conn.execute("SELECT * FROM alerts WHERE active = 1 ORDER BY timestamp DESC LIMIT ?", (limit,))
@@ -261,5 +261,5 @@ def get_suggestions(sensor_type, value):
 
 if __name__ == "__main__":
     db.init()
-    db.simulate_readings()  # seed with initial data
+    # db.simulate_readings()  # Disabled to show only real hardware data
     app.run(host="0.0.0.0", port=SERVER_PORT, debug=SERVER_DEBUG)
