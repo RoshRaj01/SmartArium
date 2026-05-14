@@ -1,10 +1,93 @@
 from flask import Flask, render_template, jsonify, request
-import json
-import random
-import math
+import sqlite3
+import configparser
 from datetime import datetime, timedelta
-from services.database import db
-from services.alerts import check_alerts, get_sensor_status, SENSOR_THRESHOLDS
+import random
+
+# ─── Load Config ─────────────────────────────────────────────────────────────
+config = configparser.ConfigParser()
+config.read('config.ini')
+
+SERVER_PORT = config.getint('SERVER', 'port', fallback=5000)
+SERVER_DEBUG = config.getboolean('SERVER', 'debug', fallback=True)
+DB_PATH = config.get('DATABASE', 'path', fallback='aquamon.db')
+
+# ─── Database Logic ──────────────────────────────────────────────────────────
+class Database:
+    def __init__(self):
+        self.conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+        self.conn.row_factory = sqlite3.Row
+
+    def init(self):
+        with self.conn:
+            self.conn.execute("CREATE TABLE IF NOT EXISTS readings (id INTEGER PRIMARY KEY, type TEXT, value REAL, timestamp DATETIME)")
+            self.conn.execute("CREATE TABLE IF NOT EXISTS alerts (id INTEGER PRIMARY KEY, sensor TEXT, message TEXT, severity TEXT, timestamp DATETIME, active INTEGER DEFAULT 1)")
+
+    def insert_reading(self, sensor_type, value):
+        with self.conn:
+            self.conn.execute("INSERT INTO readings (type, value, timestamp) VALUES (?, ?, ?)", (sensor_type, value, datetime.now()))
+
+    def get_latest(self, sensor_type):
+        cursor = self.conn.execute("SELECT value FROM readings WHERE type = ? ORDER BY timestamp DESC LIMIT 1", (sensor_type,))
+        row = cursor.fetchone()
+        return row[0] if row else 0
+
+    def get_latest_all(self):
+        types = ["oxygen", "ammonia", "tds", "temperature", "ph", "water_level"]
+        return {t: self.get_latest(t) for t in types}
+
+    def get_history(self, sensor_type, limit=50):
+        cursor = self.conn.execute("SELECT value, timestamp FROM readings WHERE type = ? ORDER BY timestamp DESC LIMIT ?", (sensor_type, limit))
+        return [{"value": r[0], "timestamp": r[1]} for r in cursor.fetchall()]
+
+    def add_alert(self, sensor, message, severity):
+        with self.conn:
+            self.conn.execute("INSERT INTO alerts (sensor, message, severity, timestamp) VALUES (?, ?, ?, ?)", (sensor, message, severity, datetime.now()))
+
+    def get_alerts(self, limit=10):
+        cursor = self.conn.execute("SELECT * FROM alerts WHERE active = 1 ORDER BY timestamp DESC LIMIT ?", (limit,))
+        return [dict(r) for r in cursor.fetchall()]
+
+    def dismiss_alert(self, alert_id):
+        with self.conn:
+            self.conn.execute("UPDATE alerts SET active = 0 WHERE id = ?", (alert_id,))
+
+    def get_feeder_schedule(self):
+        # Simplified: returns a hardcoded default or could be a table
+        return [{"time": "08:00", "amount": 5}, {"time": "20:00", "amount": 5}]
+
+    def save_feeder_schedule(self, data):
+        pass # To be implemented if you need persistence
+
+    def log_feeding(self, amount):
+        with self.conn:
+            self.conn.execute("INSERT INTO readings (type, value, timestamp) VALUES (?, ?, ?)", ("feeding", amount, datetime.now()))
+
+    def simulate_readings(self):
+        types = ["oxygen", "ammonia", "tds", "temperature", "ph", "water_level"]
+        for t in types:
+            val = random.uniform(20, 30) if t == "temperature" else random.uniform(0, 100)
+            self.insert_reading(t, val)
+
+db = Database()
+
+# ─── Alert Logic ─────────────────────────────────────────────────────────────
+SENSOR_THRESHOLDS = {
+    "temperature": (24.0, 28.0),
+    "ph": (6.5, 7.5),
+    "water_level": (80, 100)
+}
+
+def get_sensor_status(sensor_type, value):
+    if sensor_type not in SENSOR_THRESHOLDS: return "green"
+    lo, hi = SENSOR_THRESHOLDS[sensor_type]
+    if lo <= value <= hi: return "green"
+    return "red"
+
+def check_alerts(sensor_type, value):
+    status = get_sensor_status(sensor_type, value)
+    if status == "red":
+        db.add_alert(sensor_type, f"ALERT: {sensor_type} is out of range!", "critical")
 
 app = Flask(__name__)
 
@@ -168,4 +251,4 @@ def get_suggestions(sensor_type, value):
 if __name__ == "__main__":
     db.init()
     db.simulate_readings()  # seed with initial data
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=SERVER_PORT, debug=SERVER_DEBUG)
