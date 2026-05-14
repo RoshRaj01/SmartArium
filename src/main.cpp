@@ -14,10 +14,6 @@ const int oneWireBus = 4; // Data wire is plugged into pin 4 on the ESP32
 OneWire oneWire(oneWireBus);
 DallasTemperature sensors(&oneWire);
 
-// MQ-135 Gas Sensor
-const int gasPin = 34; // Analog pin for Gas Sensor
-float gasPPM = 0;
-
 void setup() {
   Serial.begin(115200);
   
@@ -79,30 +75,7 @@ void loop() {
       Serial.println("Check your wiring and the 4.7k resistor.");
       Serial.println("-------------------------");
     }
-    
-    // Read MQ-135 Gas Sensor
-    int analogValue = analogRead(gasPin);
-    gasPPM = (analogValue / 4095.0) * 1000.0; // Simplified PPM calculation
-    
-    Serial.print("Air Quality: ");
-    Serial.print(gasPPM);
-    Serial.println(" PPM");
-    
-    // Send Gas data to Flask
-    HTTPClient httpGas;
-    httpGas.begin(serverUrl);
-    httpGas.addHeader("Content-Type", "application/json");
-    
-    StaticJsonDocument<200> gasDoc;
-    gasDoc["sensor_type"] = "air_quality";
-    gasDoc["value"] = gasPPM;
-    
-    String gasBody;
-    serializeJson(gasDoc, gasBody);
-    httpGas.POST(gasBody);
-    httpGas.end();
   }
   
-  delay(2000);
- // Wait 10 seconds before next reading
+  delay(10000); // Wait 10 seconds before next reading
 }
