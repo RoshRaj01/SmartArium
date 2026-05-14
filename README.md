@@ -50,6 +50,16 @@ SmartArium/
 
 ---
 
+## 🔌 Hardware Wiring Guide
+
+| Sensor | Pin Name | ESP32 Pin | Connection Note |
+| :--- | :--- | :--- | :--- |
+| **DS18B20 (Temp)** | Data (Yellow) | **GPIO 4** | Internal Pull-up enabled. |
+| **MQ-135 (Ammonia)**| AO (Analog) | **GPIO 34** | Use **VIN (5V)** for heater. |
+| **Water Level** | S (Signal) | **GPIO 35** | 3.3V or 5V compatible. |
+
+---
+
 ## 📡 Hardware Integration (ESP32)
 
 To upload the code to your ESP32 from the terminal:
@@ -57,7 +67,7 @@ To upload the code to your ESP32 from the terminal:
 pio run --target upload
 ```
 
-The C++ code in `firmware.cpp` handles WiFi connection, DS18B20 sensor reading, and secure POST requests to the SmartArium API.
+The C++ code in `src/main.cpp` handles WiFi connection, multi-sensor data collection, and secure POST requests to the SmartArium API.
 
 ---
 

@@ -16,6 +16,7 @@ DallasTemperature sensors(&oneWire);
 
 // MQ-135 Gas Sensor (Ammonia/Air Quality)
 const int mq135Pin = 34; // Connected to AO (Analog Output)
+const int waterLevelPin = 35; // Connected to Signal (S)
 
 void setup() {
   Serial.begin(115200);
@@ -70,9 +71,16 @@ void loop() {
     delay(500); // Give the server a moment to breathe
 
     // 2. MQ-135 (Ammonia)
-    int rawValue = analogRead(mq135Pin);
-    float ppm = (rawValue / 4095.0) * 100.0; // Simple mapping
+    int rawMQ = analogRead(mq135Pin);
+    float ppm = (rawMQ / 4095.0) * 100.0; 
     sendSensorData("ammonia", ppm);
+
+    delay(500);
+
+    // 3. Water Level (Analog)
+    int rawWater = analogRead(waterLevelPin);
+    float levelPercent = (rawWater / 4095.0) * 100.0; 
+    sendSensorData("water_level", levelPercent);
   }
   delay(5000); 
 }
