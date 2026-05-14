@@ -54,6 +54,18 @@
         </button>
       </div>
 
+      <!-- Cycle Preview & Start Time -->
+      <div class="preset-config" id="preset-config" style="display: {% if schedule.mode != 'custom' %}block{% else %}none{% endif %}">
+        <h3 class="custom-title">Cycle Configuration</h3>
+        <div class="cycle-input-row">
+          <label>First Feed:</label>
+          <input type="time" id="start-time" value="{{ schedule.start_time }}" onchange="updateCyclePreview()">
+        </div>
+        <div class="cycle-preview" id="cycle-preview">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
       <!-- Custom Time Picker -->
       <div class="custom-times-section" id="custom-section"
            style="display: {% if schedule.mode == 'custom' %}block{% else %}none{% endif %}">

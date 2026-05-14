@@ -3,11 +3,16 @@
 let currentMode = 'every_8h';
 let currentAmount = 5.0;
 let customTimes = [];
+let startTime = '08:00';
 
 function initFeeder(schedule) {
   currentMode = schedule.mode || 'every_8h';
   currentAmount = schedule.quantity_grams || 5.0;
+  startTime = schedule.start_time || '08:00';
   document.getElementById('amount-num').textContent = currentAmount.toFixed(1);
+  if (document.getElementById('start-time')) {
+    document.getElementById('start-time').value = startTime;
+  }
 
   if (schedule.custom_times) {
     try {
@@ -17,6 +22,7 @@ function initFeeder(schedule) {
     }
   }
   renderCustomTimes();
+  updateCyclePreview();
 }
 
 function setMode(mode, btn) {
@@ -25,7 +31,40 @@ function setMode(mode, btn) {
   btn.classList.add('active');
 
   const customSection = document.getElementById('custom-section');
+  const presetSection = document.getElementById('preset-config');
   customSection.style.display = mode === 'custom' ? 'block' : 'none';
+  presetSection.style.display = mode === 'custom' ? 'none' : 'block';
+  updateCyclePreview();
+}
+
+function updateCyclePreview() {
+  const preview = document.getElementById('cycle-preview');
+  const startInput = document.getElementById('start-time');
+  if (!preview || !startInput) return;
+  
+  if (currentMode === 'custom') {
+    preview.innerHTML = '';
+    return;
+  }
+
+  startTime = startInput.value;
+  const [h, m] = startTime.split(':').map(Number);
+  let times = [];
+
+  if (currentMode === 'every_8h') {
+    times = [0, 8, 16].map(offset => `${(h + offset) % 24}:${m.toString().padStart(2, '0')}`);
+  } else if (currentMode === 'every_12h') {
+    times = [0, 12].map(offset => `${(h + offset) % 24}:${m.toString().padStart(2, '0')}`);
+  } else if (currentMode === 'every_24h') {
+    times = [startTime];
+  }
+
+  preview.innerHTML = `
+    <div class="preview-label">Next feed times:</div>
+    <div class="preview-chips">
+      ${times.map(t => `<span class="time-chip">${t}</span>`).join('')}
+    </div>
+  `;
 }
 
 function changeAmount(delta) {
@@ -64,6 +103,7 @@ async function saveSchedule() {
     mode: currentMode,
     quantity_grams: currentAmount,
     custom_times: currentMode === 'custom' ? JSON.stringify(customTimes) : null,
+    start_time: startTime
   };
   try {
     const r = await fetch('/api/feeder/schedule', {

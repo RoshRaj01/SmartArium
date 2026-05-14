@@ -53,6 +53,9 @@ SmartArium/
 | **Water Level** | S (Signal) | **GPIO 35** | |
 | | VCC (+) | **3.3V** | |
 | | GND (-) | **GND** | |
+| **SG90 Servo** | **Signal (Orange)** | **GPIO 13** | Use a PWM pin. |
+| | VCC (Red) | **VIN (5V)** | Servos need 5V power. |
+| | GND (Brown) | **GND** | |
 
 ---
 

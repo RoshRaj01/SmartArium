@@ -3,6 +3,7 @@ import sqlite3
 import configparser
 from datetime import datetime, timedelta
 import random
+import json
 
 # ─── Load Config ─────────────────────────────────────────────────────────────
 config = configparser.ConfigParser()
@@ -11,6 +12,10 @@ config.read('config.ini')
 SERVER_PORT = config.getint('SERVER', 'port', fallback=5000)
 SERVER_DEBUG = config.getboolean('SERVER', 'debug', fallback=True)
 DB_PATH = config.get('DATABASE', 'path', fallback='aquamon.db')
+
+# ─── Feeder Global State ───
+PENDING_FEED = {"active": False, "amount": 1}
+LAST_SCHEDULED_FEED = "" # Format "HH:MM" to avoid double-feeding
 
 # ─── Database Logic ──────────────────────────────────────────────────────────
 class Database:
@@ -22,6 +27,8 @@ class Database:
         with self.conn:
             self.conn.execute("CREATE TABLE IF NOT EXISTS readings (id INTEGER PRIMARY KEY, type TEXT, value REAL, timestamp DATETIME)")
             self.conn.execute("CREATE TABLE IF NOT EXISTS alerts (id INTEGER PRIMARY KEY, sensor_type TEXT, message TEXT, severity TEXT, timestamp DATETIME, active INTEGER DEFAULT 1)")
+            self.conn.execute("CREATE TABLE IF NOT EXISTS feeder_settings (id INTEGER PRIMARY KEY, mode TEXT, quantity_grams REAL, custom_times TEXT, start_time TEXT)")
+            self.conn.execute("CREATE TABLE IF NOT EXISTS feeding_log (id INTEGER PRIMARY KEY, amount REAL, timestamp DATETIME, source TEXT)")
 
     def insert_reading(self, sensor_type, value):
         with self.conn:
@@ -53,15 +60,24 @@ class Database:
             self.conn.execute("UPDATE alerts SET active = 0 WHERE id = ?", (alert_id,))
 
     def get_feeder_schedule(self):
-        # Simplified: returns a hardcoded default or could be a table
-        return [{"time": "08:00", "amount": 5}, {"time": "20:00", "amount": 5}]
+        cursor = self.conn.execute("SELECT * FROM feeder_settings LIMIT 1")
+        row = cursor.fetchone()
+        settings = dict(row) if row else {"mode": "every_24h", "quantity_grams": 5.0, "custom_times": "[]", "start_time": "08:00"}
+        
+        # Get recent logs
+        cursor = self.conn.execute("SELECT amount as amount_grams, timestamp, source FROM feeding_log ORDER BY timestamp DESC LIMIT 10")
+        settings["log"] = [dict(r) for r in cursor.fetchall()]
+        return settings
 
     def save_feeder_schedule(self, data):
-        pass # To be implemented if you need persistence
-
-    def log_feeding(self, amount):
         with self.conn:
-            self.conn.execute("INSERT INTO readings (type, value, timestamp) VALUES (?, ?, ?)", ("feeding", amount, datetime.now()))
+            self.conn.execute("DELETE FROM feeder_settings")
+            self.conn.execute("INSERT INTO feeder_settings (mode, quantity_grams, custom_times, start_time) VALUES (?, ?, ?, ?)", 
+                              (data["mode"], data["quantity_grams"], data["custom_times"], data["start_time"]))
+
+    def log_feeding(self, amount, source="manual"):
+        with self.conn:
+            self.conn.execute("INSERT INTO feeding_log (amount, timestamp, source) VALUES (?, ?, ?)", (amount, datetime.now(), source))
 
     def simulate_readings(self):
         types = ["oxygen", "ammonia", "tds", "temperature", "ph", "water_level"]
@@ -179,10 +195,60 @@ def api_set_schedule():
 
 @app.route("/api/feeder/feed-now", methods=["POST"])
 def api_feed_now():
+    global PENDING_FEED
     data = request.json
-    amount = data.get("amount", 5)
-    db.log_feeding(amount)
-    return jsonify({"success": True, "message": f"Fed {amount}g manually"})
+    amount = float(data.get("amount", 1))
+    PENDING_FEED["active"] = True
+    PENDING_FEED["amount"] = amount
+    return jsonify({"success": True, "message": f"Feeding {amount}g initiated..."})
+
+@app.route("/api/feeder/check")
+def api_feeder_check():
+    global PENDING_FEED, LAST_SCHEDULED_FEED
+    
+    # 1. Check Scheduled Feeding
+    now = datetime.now()
+    now_str = now.strftime("%H:%M")
+    
+    if now_str != LAST_SCHEDULED_FEED:
+        settings = db.get_feeder_schedule()
+        mode = settings["mode"]
+        start_time = settings["start_time"]
+        target_times = []
+        
+        if mode != "custom":
+            try:
+                base_h, base_m = map(int, start_time.split(':'))
+                if mode == "every_8h":
+                    target_times = [f"{(base_h + i*8)%24:02d}:{base_m:02d}" for i in range(3)]
+                elif mode == "every_12h":
+                    target_times = [f"{(base_h + i*12)%24:02d}:{base_m:02d}" for i in range(2)]
+                elif mode == "every_24h":
+                    target_times = [start_time]
+            except Exception as e:
+                print(f"[FEEDER ERROR] Failed to calculate cycles: {e}")
+                target_times = [start_time]
+        else: 
+            try: target_times = json.loads(settings["custom_times"])
+            except: target_times = []
+
+        # Check if current minute matches any target time
+        if now_str in target_times:
+            print(f"[FEEDER] Time Match! Current: {now_str}, Targets: {target_times}")
+            PENDING_FEED["active"] = True
+            PENDING_FEED["amount"] = settings["quantity_grams"]
+            LAST_SCHEDULED_FEED = now_str
+            db.log_feeding(settings["quantity_grams"], source="auto")
+        else:
+            # Just log once a minute what we are waiting for
+            if random.random() < 0.05: # Only log occasionally to avoid spam
+                 print(f"[FEEDER] Waiting... Current Time: {now_str}, Target Times: {target_times}")
+
+    # 2. Return Status
+    status = PENDING_FEED.copy()
+    if PENDING_FEED["active"]:
+        PENDING_FEED["active"] = False 
+    return jsonify(status)
 
 @app.route("/api/alerts/dismiss/<int:alert_id>", methods=["POST"])
 def api_dismiss_alert(alert_id):
