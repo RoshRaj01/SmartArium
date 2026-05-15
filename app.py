@@ -40,7 +40,7 @@ class Database:
         return row[0] if row else 0
 
     def get_latest_all(self):
-        types = ["oxygen", "ammonia", "tds", "temperature", "ph", "water_level"]
+        types = ["oxygen", "ammonia", "tds", "temperature", "ph", "water_level", "turbidity"]
         return {t: self.get_latest(t) for t in types}
 
     def get_history(self, sensor_type, limit=50):
@@ -80,7 +80,7 @@ class Database:
             self.conn.execute("INSERT INTO feeding_log (amount, timestamp, source) VALUES (?, ?, ?)", (amount, datetime.now(), source))
 
     def simulate_readings(self):
-        types = ["oxygen", "ammonia", "tds", "temperature", "ph", "water_level"]
+        types = ["oxygen", "ammonia", "tds", "temperature", "ph", "water_level", "turbidity"]
         for t in types:
             val = random.uniform(20, 30) if t == "temperature" else random.uniform(0, 100)
             self.insert_reading(t, val)
@@ -94,7 +94,8 @@ SENSOR_THRESHOLDS = {
     "ammonia": (0, 20.0), # Adjusted for MQ-135 Raw Range
     "water_level": (50, 100),
     "tds": (0, 500),
-    "oxygen": (5, 12)
+    "oxygen": (5, 12),
+    "turbidity": (0, 5.0) # NTU
 }
 
 def get_sensor_status(sensor_type, value):
@@ -128,7 +129,7 @@ def dashboard():
 
 @app.route("/sensor/<sensor_type>")
 def sensor(sensor_type):
-    valid = ["oxygen", "ammonia", "tds", "temperature", "ph", "water_level"]
+    valid = ["oxygen", "ammonia", "tds", "temperature", "ph", "water_level", "turbidity"]
     if sensor_type not in valid:
         return "Not found", 404
     current = db.get_latest(sensor_type)
@@ -284,6 +285,7 @@ SENSOR_INFO = {
     "temperature": {"label": "Temperature", "unit": "°C", "icon": "🌡️", "ideal": "24–28 °C"},
     "ph": {"label": "pH Level", "unit": "pH", "icon": "⚖️", "ideal": "6.5–7.5"},
     "water_level": {"label": "Water Level", "unit": "%", "icon": "🫧", "ideal": "80–100%"},
+    "turbidity": {"label": "Turbidity", "unit": "NTU", "icon": "🌫️", "ideal": "< 1.0 NTU"},
 }
 
 def get_suggestions(sensor_type, value):
@@ -323,6 +325,12 @@ def get_suggestions(sensor_type, value):
             "yellow": ["Top off with dechlorinated water to compensate for evaporation.", "Check for any slow leaks around seals or equipment."],
             "orange": ["Water level is significantly low. Top off immediately.", "Check if equipment is splashing water out.", "Inspect all tubing and return lines for leaks."],
             "red": ["URGENT: Water level is critical. Pumps and heaters may be exposed!", "Top off immediately to prevent heater burnout.", "Check for active leaks — inspect all seams and equipment."],
+        },
+        "turbidity": {
+            "green": ["Water is crystal clear. Light penetration is optimal.", "Maintain current filtration."],
+            "yellow": ["Water is slightly cloudy. Check filter sponges.", "Rinse or replace fine filter floss."],
+            "orange": ["Significant cloudiness. Perform a 20% water change.", "Check for overfeeding or decaying matter.", "Consider using a water polisher or clarifier."],
+            "red": ["CRITICAL: High turbidity detected. Perform a 40% water change immediately.", "Clean all filter media.", "Reduce lighting hours if algae bloom is suspected.", "Verify that the substrate isn't being disturbed by high flow."],
         },
     }
     status = get_sensor_status(sensor_type, value)

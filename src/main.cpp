@@ -21,6 +21,7 @@ DallasTemperature sensors(&oneWire);
 // MQ-135 Gas Sensor (Ammonia/Air Quality)
 const int mq135Pin = 34; // Connected to AO (Analog Output)
 const int waterLevelPin = 35; // Connected to Signal (S)
+const int turbidityPin = 32;  // Turbidity sensor (Analog)
 const int servoPin = 13;     // Orange Signal wire
 
 Servo feederServo;
@@ -36,6 +37,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 float lastTemp = 0;
 float lastAmmonia = 0;
 float lastWater = 0;
+float lastTurbidity = 0;
 bool isFeeding = false;
 int lastResponseCode = 0;
 
@@ -69,6 +71,11 @@ void updateDisplay() {
     display.print("Water:   ");
     display.print(lastWater, 2);
     display.println(" %");
+
+    // Turbidity
+    display.print("Turb:    ");
+    display.print(lastTurbidity, 2);
+    display.println(" NTU");
   }
   
   // WiFi & Server Status
@@ -207,8 +214,21 @@ void loop() {
     int rawWater = analogRead(waterLevelPin);
     float levelPercent = (rawWater / 4095.0) * 100.0; 
     lastWater = levelPercent;
-    updateDisplay(); // Update immediately
+    updateDisplay(); 
     sendSensorData("water_level", levelPercent);
+
+    delay(500);
+
+    // 4. Turbidity (Analog)
+    int rawTurb = analogRead(turbidityPin);
+    // Simple conversion: 3.3V (4095) is clean (~0 NTU), 0V is dirty
+    // For many sensors: NTU = -1120.4*V^2 + 5742.3*V - 4353.8
+    // Simplified for now: mapping 0-4095 to 3000-0 NTU
+    float turbidity = (1.0 - (rawTurb / 4095.0)) * 3000.0;
+    if (turbidity < 0) turbidity = 0;
+    lastTurbidity = turbidity;
+    updateDisplay();
+    sendSensorData("turbidity", turbidity);
     
     delay(1000);
   }

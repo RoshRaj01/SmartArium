@@ -41,6 +41,10 @@
     <span class="nav-icon">🫧</span> Water Level
     <span class="nav-status" id="nav-status-water_level"></span>
   </a>
+  <a href="/sensor/turbidity" class="nav-link {% if '/sensor/turbidity' in request.path %}active{% endif %}">
+    <span class="nav-icon">🌫️</span> Turbidity
+    <span class="nav-status" id="nav-status-turbidity"></span>
+  </a>
 
   <div class="sidebar-section-label">CONTROLS</div>
   <a href="/feeder" class="nav-link {% if request.path == '/feeder' %}active{% endif %}">

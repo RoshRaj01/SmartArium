@@ -1,98 +1,104 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AquaMon — Dashboard</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/css/main.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AquaMon — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/main.css">
 </head>
+
 <body>
-{% include 'sidebar.html' %}
+  {% include 'sidebar.html' %}
 
-<main class="main-content">
-  <header class="top-bar">
-    <div class="top-bar-left">
-      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
-      <h1 class="page-title">Dashboard</h1>
+  <main class="main-content">
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+        <h1 class="page-title">Dashboard</h1>
+      </div>
+      <div class="top-bar-right">
+        <span class="live-indicator"><span class="pulse-dot"></span> LIVE</span>
+        <span class="clock" id="clock"></span>
+      </div>
+    </header>
+
+    <!-- Alerts Banner -->
+    <div id="alerts-section">
+      {% for alert in alerts %}
+      <div class="alert-banner alert-{{ alert.severity }}" data-id="{{ alert.id }}">
+        <span class="alert-msg">{{ alert.message }}</span>
+        <button class="alert-dismiss" onclick="dismissAlert({{ alert.id }}, this)">✕</button>
+      </div>
+      {% endfor %}
     </div>
-    <div class="top-bar-right">
-      <span class="live-indicator"><span class="pulse-dot"></span> LIVE</span>
-      <span class="clock" id="clock"></span>
-    </div>
-  </header>
 
-  <!-- Alerts Banner -->
-  <div id="alerts-section">
-    {% for alert in alerts %}
-    <div class="alert-banner alert-{{ alert.severity }}" data-id="{{ alert.id }}">
-      <span class="alert-msg">{{ alert.message }}</span>
-      <button class="alert-dismiss" onclick="dismissAlert({{ alert.id }}, this)">✕</button>
-    </div>
-    {% endfor %}
-  </div>
+    <!-- Sensor Grid -->
+    <section class="sensor-grid">
+      {% set sensor_info = {
+      'turbidity': {'label': 'Turbidity', 'unit': 'NTU', 'icon': '🌫️'},
+      'ammonia': {'label': 'Ammonia', 'unit': 'ppm', 'icon': '⚗️'},
+      'tds': {'label': 'TDS', 'unit': 'ppm', 'icon': '🧪'},
+      'temperature':{'label': 'Temperature', 'unit': '°C', 'icon': '🌡️'},
+      'ph': {'label': 'pH Level', 'unit': 'pH', 'icon': '⚖️'},
+      'water_level':{'label': 'Water Level', 'unit': '%', 'icon': '🫧'},
+      'oxygen': {'label': 'Dissolved O₂', 'unit': 'mg/L', 'icon': '💧'}
+      } %}
 
-  <!-- Sensor Grid -->
-  <section class="sensor-grid">
-    {% set sensor_info = {
-      'oxygen':     {'label': 'Dissolved O₂', 'unit': 'mg/L', 'icon': '💧'},
-      'ammonia':    {'label': 'Ammonia',       'unit': 'ppm',  'icon': '⚗️'},
-      'tds':        {'label': 'TDS',           'unit': 'ppm',  'icon': '🧪'},
-      'temperature':{'label': 'Temperature',   'unit': '°C',   'icon': '🌡️'},
-      'ph':         {'label': 'pH Level',      'unit': 'pH',   'icon': '⚖️'},
-      'water_level':{'label': 'Water Level',   'unit': '%',    'icon': '🫧'}
-    } %}
-
-    {% for key, info in sensor_info.items() %}
-    <a href="/sensor/{{ key }}" class="sensor-card status-{{ statuses[key] }}" id="card-{{ key }}">
-      <div class="card-glow"></div>
-      <div class="card-header">
-        <span class="card-icon">{{ info.icon }}</span>
-        <div class="hw-status-wrap">
-          <span class="hw-dot" id="hw-dot-{{ key }}"></span>
-          <span class="hw-text" id="hw-text-{{ key }}">OFFLINE</span>
+      {% for key, info in sensor_info.items() %}
+      <a href="/sensor/{{ key }}" class="sensor-card status-{{ statuses[key] }}" id="card-{{ key }}">
+        <div class="card-glow"></div>
+        <div class="card-header">
+          <span class="card-icon">{{ info.icon }}</span>
+          <div class="hw-status-wrap">
+            <span class="hw-dot" id="hw-dot-{{ key }}"></span>
+            <span class="hw-text" id="hw-text-{{ key }}">OFFLINE</span>
+          </div>
+          <span class="status-badge status-{{ statuses[key] }}">{{ statuses[key]|upper }}</span>
         </div>
-        <span class="status-badge status-{{ statuses[key] }}">{{ statuses[key]|upper }}</span>
-      </div>
-      <div class="card-value" id="val-{{ key }}">{{ sensors[key]|round(2) }}</div>
-      <div class="card-unit">{{ info.unit }}</div>
-      <div class="card-label">{{ info.label }}</div>
-      <div class="card-mini-bar">
-        <div class="mini-fill status-fill-{{ statuses[key] }}"></div>
-      </div>
-      <div class="card-arrow">→</div>
-    </a>
-    {% endfor %}
-  </section>
+        <div class="card-value" id="val-{{ key }}">{{ sensors[key]|round(2) }}</div>
+        <div class="card-unit">{{ info.unit }}</div>
+        <div class="card-label">{{ info.label }}</div>
+        <div class="card-mini-bar">
+          <div class="mini-fill status-fill-{{ statuses[key] }}"></div>
+        </div>
+        <div class="card-arrow">→</div>
+      </a>
+      {% endfor %}
+    </section>
 
-  <!-- Quick Stats Row -->
-  <section class="quick-stats">
-    <div class="stat-box">
-      <div class="stat-num" id="stat-good">—</div>
-      <div class="stat-lbl">Good Sensors</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-num" id="stat-warn">—</div>
-      <div class="stat-lbl">Need Attention</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-num" id="stat-crit">—</div>
-      <div class="stat-lbl">Critical</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-num" id="stat-alerts">{{ alerts|length }}</div>
-      <div class="stat-lbl">Active Alerts</div>
-    </div>
-  </section>
-</main>
+    <!-- Quick Stats Row -->
+    <section class="quick-stats">
+      <div class="stat-box">
+        <div class="stat-num" id="stat-good">—</div>
+        <div class="stat-lbl">Good Sensors</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="stat-warn">—</div>
+        <div class="stat-lbl">Need Attention</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="stat-crit">—</div>
+        <div class="stat-lbl">Critical</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="stat-alerts">{{ alerts|length }}</div>
+        <div class="stat-lbl">Active Alerts</div>
+      </div>
+    </section>
+  </main>
 
-<script src="/static/js/main.js"></script>
-<script>
-  updateClock();
-  setInterval(updateClock, 1000);
-  setInterval(refreshDashboard, 2000);
-  computeStats();
-</script>
+  <script src="/static/js/main.js"></script>
+  <script>
+    updateClock();
+    setInterval(updateClock, 1000);
+    setInterval(refreshDashboard, 2000);
+    computeStats();
+  </script>
 </body>
+
 </html>
