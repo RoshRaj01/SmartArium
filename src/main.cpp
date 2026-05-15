@@ -4,6 +4,9 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <ESP32Servo.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
 // ─── Settings ────────────────────────────────────────────────────────────────
 const char* ssid = "iQOO Neo 10R";
@@ -23,9 +26,72 @@ const int servoPin = 13;     // Orange Signal wire
 Servo feederServo;
 const char* feederUrl = "http://10.45.181.234:5000/api/feeder/check";
 
+// OLED Display Settings
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET -1
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+// Global variables to store latest values for display
+float lastTemp = 0;
+float lastAmmonia = 0;
+float lastWater = 0;
+bool isFeeding = false;
+int lastResponseCode = 0;
+
+void updateDisplay() {
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  
+  // Header
+  display.setCursor(0, 0);
+  display.println("--- SMARTARIUM ---");
+  display.println("");
+  
+  if (isFeeding) {
+    display.setTextSize(2);
+    display.setCursor(10, 25);
+    display.println("FEEDING...");
+    display.setTextSize(1);
+  } else {
+    // Temperature
+    display.print("Temp:    ");
+    display.print(lastTemp, 2);
+    display.println(" C");
+    
+    // Ammonia
+    display.print("Ammonia: ");
+    display.print(lastAmmonia, 2);
+    display.println(" ppm");
+    
+    // Water Level
+    display.print("Water:   ");
+    display.print(lastWater, 2);
+    display.println(" %");
+  }
+  
+  // WiFi & Server Status
+  display.setCursor(0, 56);
+  if (WiFi.status() == WL_CONNECTED) {
+    display.print("WIFI:OK");
+  } else {
+    display.print("WIFI:LOST");
+  }
+  
+  display.setCursor(64, 56);
+  display.print("SRV:");
+  display.print(lastResponseCode);
+  
+  display.display();
+}
+
 void performFeeding(float grams) {
   if (grams <= 0) return;
   Serial.print("FEADING: "); Serial.print(grams); Serial.println("g");
+  
+  isFeeding = true;
+  updateDisplay();
   
   feederServo.write(90); // Open
   
@@ -35,6 +101,9 @@ void performFeeding(float grams) {
   
   delay(duration);
   feederServo.write(0); // Close
+  
+  isFeeding = false;
+  updateDisplay();
 }
 
 void setup() {
@@ -54,6 +123,21 @@ void setup() {
   sensors.begin();
   feederServo.attach(servoPin);
   feederServo.write(0); // Start closed
+
+  // OLED Initialization
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { 
+    Serial.println(F("SSD1306 allocation failed"));
+  } else {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(SSD1306_WHITE);
+    display.setCursor(20, 20);
+    display.println("SMARTARIUM");
+    display.setCursor(20, 35);
+    display.println("Starting...");
+    display.display();
+    delay(2000);
+  }
 }
 
 void checkFeeder() {
@@ -85,6 +169,7 @@ void sendSensorData(String type, float value) {
   Serial.println(value);
   
   int httpResponseCode = http.POST(requestBody);
+  lastResponseCode = httpResponseCode;
   if (httpResponseCode > 0) {
     Serial.print("Server Response: ");
     Serial.println(httpResponseCode);
@@ -102,14 +187,18 @@ void loop() {
     sensors.requestTemperatures(); 
     float temp = sensors.getTempCByIndex(0);
     if (temp != DEVICE_DISCONNECTED_C) {
+      lastTemp = temp;
+      updateDisplay(); // Update immediately
       sendSensorData("temperature", temp);
     }
 
-    delay(1000); // Give the server more time to breathe
+    delay(500);
 
     // 2. MQ-135 (Ammonia)
     int rawMQ = analogRead(mq135Pin);
     float ppm = (rawMQ / 4095.0) * 100.0; 
+    lastAmmonia = ppm;
+    updateDisplay(); // Update immediately
     sendSensorData("ammonia", ppm);
 
     delay(500);
@@ -117,8 +206,12 @@ void loop() {
     // 3. Water Level (Analog)
     int rawWater = analogRead(waterLevelPin);
     float levelPercent = (rawWater / 4095.0) * 100.0; 
+    lastWater = levelPercent;
+    updateDisplay(); // Update immediately
     sendSensorData("water_level", levelPercent);
+    
     delay(1000);
   }
-  delay(5000); 
+  updateDisplay();
+  delay(2000); 
 }
