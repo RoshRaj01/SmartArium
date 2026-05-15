@@ -75,6 +75,7 @@ To upload the code to your ESP32 from the terminal:
 ```powershell
 pio run --target upload
 ```
+<img width="1157" height="419" alt="image" src="https://github.com/user-attachments/assets/4eded0da-589e-4dc0-a0d0-7b56d4112992" />
 
 The C++ code in `firmware.cpp` handles WiFi connection, DS18B20 sensor reading, and secure POST requests to the SmartArium API.
 
