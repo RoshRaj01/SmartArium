@@ -23,6 +23,7 @@ const int mq135Pin = 34; // Connected to AO (Analog Output)
 const int waterLevelPin = 35; // Connected to Signal (S)
 const int turbidityPin = 32;  // Turbidity sensor (Analog)
 const int tdsPin = 33;        // TDS Meter V1.0 (Analog)
+const int phPin = 36;         // pH Sensor E201-C (Analog)
 const int servoPin = 13;     // Orange Signal wire
 
 Servo feederServo;
@@ -40,6 +41,7 @@ float lastAmmonia = 0;
 float lastWater = 0;
 float lastTurbidity = 0;
 float lastTDS = 0;
+float lastPH = 7.0;
 bool isFeeding = false;
 int lastResponseCode = 0;
 
@@ -79,10 +81,11 @@ void updateDisplay() {
     display.print(lastTurbidity, 1);
     display.println(" NTU");
 
-    // TDS
-    display.print("TDS:     ");
+    // TDS & pH (Combined line to save space)
+    display.print("TDS: ");
     display.print(lastTDS, 0);
-    display.println(" ppm");
+    display.print("  pH: ");
+    display.println(lastPH, 2);
   }
   
   // WiFi & Server Status
@@ -251,6 +254,18 @@ void loop() {
     lastTDS = tdsValue;
     updateDisplay();
     sendSensorData("tds", tdsValue);
+
+    delay(500);
+
+    // 6. pH Sensor (Analog)
+    int rawPH = analogRead(phPin);
+    float voltagePH = rawPH * (3.3 / 4095.0);
+    // Typical calibration: pH 7 is usually ~2.5V on 5V systems. 
+    // On 3.3V ESP32, this needs careful calibration.
+    float phValue = 3.5 * voltagePH + 0.0; // Placeholder linear map
+    lastPH = phValue;
+    updateDisplay();
+    sendSensorData("ph", phValue);
 
     delay(1000);
   }
