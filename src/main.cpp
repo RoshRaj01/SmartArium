@@ -22,6 +22,7 @@ DallasTemperature sensors(&oneWire);
 const int mq135Pin = 34; // Connected to AO (Analog Output)
 const int waterLevelPin = 35; // Connected to Signal (S)
 const int turbidityPin = 32;  // Turbidity sensor (Analog)
+const int tdsPin = 33;        // TDS Meter V1.0 (Analog)
 const int servoPin = 13;     // Orange Signal wire
 
 Servo feederServo;
@@ -38,6 +39,7 @@ float lastTemp = 0;
 float lastAmmonia = 0;
 float lastWater = 0;
 float lastTurbidity = 0;
+float lastTDS = 0;
 bool isFeeding = false;
 int lastResponseCode = 0;
 
@@ -74,8 +76,13 @@ void updateDisplay() {
 
     // Turbidity
     display.print("Turb:    ");
-    display.print(lastTurbidity, 2);
+    display.print(lastTurbidity, 1);
     display.println(" NTU");
+
+    // TDS
+    display.print("TDS:     ");
+    display.print(lastTDS, 0);
+    display.println(" ppm");
   }
   
   // WiFi & Server Status
@@ -230,6 +237,21 @@ void loop() {
     updateDisplay();
     sendSensorData("turbidity", turbidity);
     
+    delay(500);
+
+    // 5. TDS Meter (Analog)
+    int rawTDS = analogRead(tdsPin);
+    float voltageTDS = rawTDS * (3.3 / 4095.0);
+    // Temperature compensation
+    float compCoeff = 1.0 + 0.02 * (lastTemp - 25.0);
+    float compVolts = voltageTDS / compCoeff;
+    // Standard Gravity TDS formula
+    float tdsValue = (133.42 * pow(compVolts, 3) - 255.86 * pow(compVolts, 2) + 857.39 * compVolts) * 0.5;
+    if (tdsValue < 0) tdsValue = 0;
+    lastTDS = tdsValue;
+    updateDisplay();
+    sendSensorData("tds", tdsValue);
+
     delay(1000);
   }
   updateDisplay();
